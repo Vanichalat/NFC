@@ -6,17 +6,24 @@
 #include <nfc_t2t_lib.h>
 #include <nfc/ndef/uri_msg.h>
 #include <nfc/ndef/uri_rec.h>
+// #include <nfc/ndef/record.h>
 
 #include <dk_buttons_and_leds.h>
 
 
 #define NFC_FIELD_LED		DK_LED1
 
+//https://tappetownerdynamic.page.link/VXX6
+//https://mrlink001.page.link/R6GT
 
 static const uint8_t m_url[] =
-    {'g', 'o', 'o', 'g', 'l', 'e', '.', 'c', 'o', 'm'}; //URL "google.com"
+    // {'/', '/', 't', 'a', 'p', 'p', 'e', 't', 'o', 'w', 'n', 'e', 'r', 'd', 'y', 'n', 'a', 'm', 'i', 'c','.', 'p', 'a', 'g','e', '.', 
+	// 'l','i', 'n', 'k','/', 'v', 'x', 'x', '6'}; 
+ {'h', 't', 't', 'p', 's', ':', '/', '/','m', 'r', 'l', 'i', 'n', 'k', '0', '0', '1', '.', 'p', 'a', 'g','e', '.', 'l', 'i', 'n', 'k','/', 'R', '6', 'G', 'T'}; 
 
 uint8_t m_ndef_msg_buf[256];
+
+
 
 
 static void nfc_callback(void *context,
@@ -39,13 +46,69 @@ static void nfc_callback(void *context,
 		break;
 	}
 }
+//int nfc_ndef_uri_msg_encde(enum nfc_ndef_uri_rec_id uri_id_code,
+	int nfc_ndef_uri_msg_encde( uint8_t const *const uri_data,
+			    uint16_t uri_data_len,
+			    uint8_t *buf,
+			    uint32_t *len)
+{
+	int err;
+
+	/* Create NFC NDEF message description with URI record */
+	NFC_NDEF_MSG_DEF(nfc_uri_msg, 1);
+	struct nfc_ndef_uri_rec_payload nfc_ndef_uri_record_payload_desc =  
+	{								       
+		//.uri_id_code = (NULL),			       
+		.uri_data = (m_url),				       
+		.uri_data_len = (sizeof(m_url))			       
+	};	
+	struct nfc_ndef_record_desc nfc_ndef_generic_record_desc =	    
+	{								    
+		.tnf = TNF_ABSOLUTE_URI,						    
+		.id_length = 0,					    
+		.id = NULL,						    
+		.type_length = sizeof(m_url),			    
+		.type = m_url,					    
+		.payload_constructor  =					    
+			(payload_constructor_t)nfc_ndef_uri_rec_payload_encode,	    
+		.payload_descriptor = (void *) &nfc_ndef_uri_record_payload_desc	    
+	};
+	err = nfc_ndef_msg_record_add(&NFC_NDEF_MSG(nfc_uri_msg),
+				      &nfc_ndef_generic_record_desc);
+	if (err < 0) {
+		return err;
+	}
+
+	if (!uri_data) {
+		return -EINVAL;
+	}
+	/* Encode whole message into buffer */
+	err = nfc_ndef_msg_encode(&NFC_NDEF_MSG(nfc_uri_msg),
+				  buf,
+				  len);
+	return err;
+
+
+}
 
 int main(void)
 {
 	int err;
 	size_t len = sizeof(m_ndef_msg_buf);
 
-	printk("Starting NFC Launch app example\n");
+	// NFC_NDEF_URI_RECORD_DESC_DEF(vani,"code", data, len);
+	
+	// struct nfc_ndef_uri_rec_payload  vani_ndef_uri_record_payload_desc = {
+	// 	uri_id_code = "code";
+	// 	uri_data_len = len;
+	// 	uri_data = data;
+	// }
+	/*pVani.uri_id_code = ""
+	pVani.uri_data = "";
+	pVani.uri_data_len = "";*/
+	
+
+	printk("Starting url example\n");
 
 	/* Configure LED-pins as outputs */
 	err = dk_leds_init();
@@ -62,8 +125,13 @@ int main(void)
 	}
 
 	
-		err = nfc_ndef_uri_msg_encode( NFC_URI_HTTP_WWW,
-						m_url,
+		// err = nfc_ndef_uri_msg_encode( NFC_URI_HTTPS,
+		// 				m_url,
+		// 				sizeof(m_url),
+		// 				m_ndef_msg_buf,
+		// 				&len);
+		// 	printk("length is %d",len);
+		err = nfc_ndef_uri_msg_encde(m_url,
 						sizeof(m_url),
 						m_ndef_msg_buf,
 						&len);
@@ -75,6 +143,7 @@ int main(void)
 		}
 
 
+// err = nfc_ndef_uri_rec_payload_encode();
 
 	err = nfc_t2t_payload_set(m_ndef_msg_buf, len);
 	if (err) {

@@ -1,0 +1,6 @@
+{
+    "files.associations": {
+        "kernel.h": "c",
+        "uri_msg.h": "c"
+    }
+}
